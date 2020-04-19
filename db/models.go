@@ -20,11 +20,21 @@ type BdbBeer struct {
 }
 
 type BdbBrewery struct {
-	BreweryID int64          `json:"brewery_id"`
-	CreatedAt time.Time      `json:"created_at"`
-	Name      string         `json:"name"`
-	Url       sql.NullString `json:"url"`
-	Location  sql.NullString `json:"location"`
+	BreweryID   int64          `json:"brewery_id"`
+	CreatedAt   time.Time      `json:"created_at"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Address     sql.NullString `json:"address"`
+	City        sql.NullString `json:"city"`
+	State       sql.NullString `json:"state"`
+	CountryID   string         `json:"country_id"`
+	Phone       sql.NullString `json:"phone"`
+	Url         sql.NullString `json:"url"`
+}
+
+type BdbCountry struct {
+	ID    string `json:"id"`
+	Value string `json:"value"`
 }
 
 type BdbType struct {

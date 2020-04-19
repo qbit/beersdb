@@ -47,16 +47,22 @@ func (q *Queries) CreateBeer(ctx context.Context, arg CreateBeerParams) (CreateB
 
 const createBrewery = `-- name: CreateBrewery :one
 INSERT INTO bdb_breweries (
-	name, url, location
+	name, url, description, address, city, state, country_id, phone, url
 ) VALUES (
-	$1, $2, $3
+	$1, $2, $3, $4, $5, $6, $7, $8, $9
 ) RETURNING brewery_id, created_at
 `
 
 type CreateBreweryParams struct {
-	Name     string         `json:"name"`
-	Url      sql.NullString `json:"url"`
-	Location sql.NullString `json:"location"`
+	Name        string         `json:"name"`
+	Url         sql.NullString `json:"url"`
+	Description string         `json:"description"`
+	Address     sql.NullString `json:"address"`
+	City        sql.NullString `json:"city"`
+	State       sql.NullString `json:"state"`
+	CountryID   string         `json:"country_id"`
+	Phone       sql.NullString `json:"phone"`
+	Url_2       sql.NullString `json:"url_2"`
 }
 
 type CreateBreweryRow struct {
@@ -65,7 +71,17 @@ type CreateBreweryRow struct {
 }
 
 func (q *Queries) CreateBrewery(ctx context.Context, arg CreateBreweryParams) (CreateBreweryRow, error) {
-	row := q.queryRow(ctx, q.createBreweryStmt, createBrewery, arg.Name, arg.Url, arg.Location)
+	row := q.queryRow(ctx, q.createBreweryStmt, createBrewery,
+		arg.Name,
+		arg.Url,
+		arg.Description,
+		arg.Address,
+		arg.City,
+		arg.State,
+		arg.CountryID,
+		arg.Phone,
+		arg.Url_2,
+	)
 	var i CreateBreweryRow
 	err := row.Scan(&i.BreweryID, &i.CreatedAt)
 	return i, err

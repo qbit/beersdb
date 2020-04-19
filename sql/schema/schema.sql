@@ -3,6 +3,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 DROP TABLE IF EXISTS bdb_beers;
 DROP TABLE IF EXISTS bdb_users;
+DROP TABLE IF EXISTS bdb_countries;
 DROP TABLE IF EXISTS bdb_types;
 DROP TABLE IF EXISTS bdb_breweries;
 
@@ -20,12 +21,22 @@ CREATE TABLE bdb_users (
 	token_expires	timestamp	NOT NULL DEFAULT NOW() + INTERVAL '30 days'
 );
 
+CREATE TABLE bdb_countries (
+	id	VARCHAR	NOT NULL PRIMARY KEY UNIQUE,
+	value	text	NOT NULL
+);
+
 CREATE TABLE bdb_breweries (
 	brewery_id	BIGSERIAL	NOT NULL PRIMARY KEY UNIQUE,
 	created_at	timestamp 	NOT NULL DEFAULT NOW(),
 	name		text 		NOT NULL,
-	url		text,
-	location	text
+	description	text 		NOT NULL,
+	address		text,
+	city		text,
+	state		text,
+	country_id	varchar		NOT NULL REFERENCES bdb_countries (id),
+	phone		text,
+	url		text
 );
 
 CREATE TABLE bdb_types (
