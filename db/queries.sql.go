@@ -132,8 +132,46 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	return i, err
 }
 
+const getBeersByBrewery = `-- name: GetBeersByBrewery :many
+SELECT beer_id, brewery_id, type_id, created_at, updated_at, name, description, abv, ibu FROM bdb_beers
+WHERE brewery_id = $1
+`
+
+func (q *Queries) GetBeersByBrewery(ctx context.Context, breweryID int64) ([]BdbBeer, error) {
+	rows, err := q.query(ctx, q.getBeersByBreweryStmt, getBeersByBrewery, breweryID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BdbBeer
+	for rows.Next() {
+		var i BdbBeer
+		if err := rows.Scan(
+			&i.BeerID,
+			&i.BreweryID,
+			&i.TypeID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Description,
+			&i.Abv,
+			&i.Ibu,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserByToken = `-- name: GetUserByToken :one
-SELECT user_id, created_at, updated_at, first_name, last_name, username, hash, email, token, token_expires FROM bdb_users
+SELECT user_id, created_at, updated_at, active, first_name, last_name, username, hash, email, token, token_expires FROM bdb_users
 WHERE token = $1 LIMIT 1
 `
 
@@ -144,6 +182,7 @@ func (q *Queries) GetUserByToken(ctx context.Context, token string) (BdbUser, er
 		&i.UserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.Active,
 		&i.FirstName,
 		&i.LastName,
 		&i.Username,
@@ -153,4 +192,50 @@ func (q *Queries) GetUserByToken(ctx context.Context, token string) (BdbUser, er
 		&i.TokenExpires,
 	)
 	return i, err
+}
+
+const searchBeers = `-- name: SearchBeers :many
+SELECT beer_id, brewery_id, name,
+	similarity(description, $1) as desc_similarity,
+	ts_headline('english', description, q, 'StartSel = <b>, StopSel = </b>') as headline
+FROM bdb_beers, to_tsquery($1) q
+WHERE similarity(description, $1) > 0.0
+	order by similarity DESC
+`
+
+type SearchBeersRow struct {
+	BeerID         int64       `json:"beer_id"`
+	BreweryID      int64       `json:"brewery_id"`
+	Name           string      `json:"name"`
+	DescSimilarity interface{} `json:"desc_similarity"`
+	Headline       interface{} `json:"headline"`
+}
+
+func (q *Queries) SearchBeers(ctx context.Context, similarity interface{}) ([]SearchBeersRow, error) {
+	rows, err := q.query(ctx, q.searchBeersStmt, searchBeers, similarity)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []SearchBeersRow
+	for rows.Next() {
+		var i SearchBeersRow
+		if err := rows.Scan(
+			&i.BeerID,
+			&i.BreweryID,
+			&i.Name,
+			&i.DescSimilarity,
+			&i.Headline,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

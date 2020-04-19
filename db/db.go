@@ -34,8 +34,14 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createUserStmt, err = db.PrepareContext(ctx, createUser); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateUser: %w", err)
 	}
+	if q.getBeersByBreweryStmt, err = db.PrepareContext(ctx, getBeersByBrewery); err != nil {
+		return nil, fmt.Errorf("error preparing query GetBeersByBrewery: %w", err)
+	}
 	if q.getUserByTokenStmt, err = db.PrepareContext(ctx, getUserByToken); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserByToken: %w", err)
+	}
+	if q.searchBeersStmt, err = db.PrepareContext(ctx, searchBeers); err != nil {
+		return nil, fmt.Errorf("error preparing query SearchBeers: %w", err)
 	}
 	return &q, nil
 }
@@ -62,9 +68,19 @@ func (q *Queries) Close() error {
 			err = fmt.Errorf("error closing createUserStmt: %w", cerr)
 		}
 	}
+	if q.getBeersByBreweryStmt != nil {
+		if cerr := q.getBeersByBreweryStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getBeersByBreweryStmt: %w", cerr)
+		}
+	}
 	if q.getUserByTokenStmt != nil {
 		if cerr := q.getUserByTokenStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserByTokenStmt: %w", cerr)
+		}
+	}
+	if q.searchBeersStmt != nil {
+		if cerr := q.searchBeersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing searchBeersStmt: %w", cerr)
 		}
 	}
 	return err
@@ -104,23 +120,27 @@ func (q *Queries) queryRow(ctx context.Context, stmt *sql.Stmt, query string, ar
 }
 
 type Queries struct {
-	db                 DBTX
-	tx                 *sql.Tx
-	createBeerStmt     *sql.Stmt
-	createBreweryStmt  *sql.Stmt
-	createTypeStmt     *sql.Stmt
-	createUserStmt     *sql.Stmt
-	getUserByTokenStmt *sql.Stmt
+	db                    DBTX
+	tx                    *sql.Tx
+	createBeerStmt        *sql.Stmt
+	createBreweryStmt     *sql.Stmt
+	createTypeStmt        *sql.Stmt
+	createUserStmt        *sql.Stmt
+	getBeersByBreweryStmt *sql.Stmt
+	getUserByTokenStmt    *sql.Stmt
+	searchBeersStmt       *sql.Stmt
 }
 
 func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 	return &Queries{
-		db:                 tx,
-		tx:                 tx,
-		createBeerStmt:     q.createBeerStmt,
-		createBreweryStmt:  q.createBreweryStmt,
-		createTypeStmt:     q.createTypeStmt,
-		createUserStmt:     q.createUserStmt,
-		getUserByTokenStmt: q.getUserByTokenStmt,
+		db:                    tx,
+		tx:                    tx,
+		createBeerStmt:        q.createBeerStmt,
+		createBreweryStmt:     q.createBreweryStmt,
+		createTypeStmt:        q.createTypeStmt,
+		createUserStmt:        q.createUserStmt,
+		getBeersByBreweryStmt: q.getBeersByBreweryStmt,
+		getUserByTokenStmt:    q.getUserByTokenStmt,
+		searchBeersStmt:       q.searchBeersStmt,
 	}
 }

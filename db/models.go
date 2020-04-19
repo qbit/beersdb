@@ -37,6 +37,7 @@ type BdbUser struct {
 	UserID       int64        `json:"user_id"`
 	CreatedAt    time.Time    `json:"created_at"`
 	UpdatedAt    sql.NullTime `json:"updated_at"`
+	Active       bool         `json:"active"`
 	FirstName    string       `json:"first_name"`
 	LastName     string       `json:"last_name"`
 	Username     string       `json:"username"`

@@ -29,3 +29,15 @@ INSERT INTO bdb_users (
 -- name: GetUserByToken :one
 SELECT * FROM bdb_users
 WHERE token = $1 LIMIT 1;
+
+-- name: GetBeersByBrewery :many
+SELECT * FROM bdb_beers
+WHERE brewery_id = $1;
+
+-- name: SearchBeers :many
+SELECT beer_id, brewery_id, name,
+	similarity(description, $1) as desc_similarity,
+	ts_headline('english', description, q, 'StartSel = <b>, StopSel = </b>') as headline
+FROM bdb_beers, to_tsquery($1) q
+WHERE similarity(description, $1) > 0.0
+	order by similarity DESC;
