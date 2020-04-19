@@ -170,6 +170,53 @@ func (q *Queries) GetBeersByBrewery(ctx context.Context, breweryID int64) ([]Bdb
 	return items, nil
 }
 
+const getRecentBeers = `-- name: GetRecentBeers :many
+SELECT beer_id, brewery_id, type_id, created_at, updated_at, name, description, abv, ibu FROM bdb_beers
+WHERE created_at >= $1
+ORDER BY created_at DESC
+LIMIT $2
+OFFSET $3
+`
+
+type GetRecentBeersParams struct {
+	CreatedAt time.Time `json:"created_at"`
+	Limit     int32     `json:"limit"`
+	Offset    int32     `json:"offset"`
+}
+
+func (q *Queries) GetRecentBeers(ctx context.Context, arg GetRecentBeersParams) ([]BdbBeer, error) {
+	rows, err := q.query(ctx, q.getRecentBeersStmt, getRecentBeers, arg.CreatedAt, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BdbBeer
+	for rows.Next() {
+		var i BdbBeer
+		if err := rows.Scan(
+			&i.BeerID,
+			&i.BreweryID,
+			&i.TypeID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Description,
+			&i.Abv,
+			&i.Ibu,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getUserByToken = `-- name: GetUserByToken :one
 SELECT user_id, created_at, updated_at, active, first_name, last_name, username, hash, email, token, token_expires FROM bdb_users
 WHERE token = $1 LIMIT 1

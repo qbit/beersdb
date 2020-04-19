@@ -34,6 +34,13 @@ WHERE token = $1 LIMIT 1;
 SELECT * FROM bdb_beers
 WHERE brewery_id = $1;
 
+-- name: GetRecentBeers :many
+SELECT * FROM bdb_beers
+WHERE created_at >= $1
+ORDER BY created_at DESC
+LIMIT $2
+OFFSET $3;
+
 -- name: SearchBeers :many
 SELECT beer_id, brewery_id, name,
 	similarity(description, $1) as desc_similarity,
