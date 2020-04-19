@@ -1,0 +1,9 @@
+version: "1"
+packages:
+  - name: db
+    emit_json_tags: true
+    emit_prepared_queries: true
+    emit_interface: false
+    path: "db"
+    queries: "./sql/queries"
+    schema: "./sql/schema"
