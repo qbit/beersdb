@@ -26,6 +26,14 @@ INSERT INTO bdb_users (
 	$1, $2, $3, $4, hash($5)
 ) RETURNING user_id, username, token, token_expires;
 
+-- name: GenerateNewToken :one
+UPDATE bdb_users set
+	token = DEFAULT,
+	token_expires = DEFAULT
+WHERE
+	token = $1
+RETURNING token, token_expires;
+
 -- name: GetUserByToken :one
 SELECT * FROM bdb_users
 WHERE token = $1 LIMIT 1;
@@ -40,6 +48,10 @@ WHERE created_at >= $1
 ORDER BY created_at DESC
 LIMIT $2
 OFFSET $3;
+
+-- name: GetAllBeers :many
+SELECT * FROM bdb_beers
+ORDER BY created_at DESC ;
 
 -- name: SearchBeers :many
 SELECT beer_id, brewery_id, name,
