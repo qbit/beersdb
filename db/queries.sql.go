@@ -6,6 +6,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"time"
 )
 
@@ -18,8 +19,8 @@ INSERT INTO bdb_beers (
 `
 
 type CreateBeerParams struct {
-	BreweryID   int64   `json:"brewery_id"`
-	TypeID      int64   `json:"type_id"`
+	BreweryID   int32   `json:"brewery_id"`
+	TypeID      int32   `json:"type_id"`
 	Name        string  `json:"name"`
 	Description string  `json:"description"`
 	Abv         float64 `json:"abv"`
@@ -27,7 +28,7 @@ type CreateBeerParams struct {
 }
 
 type CreateBeerRow struct {
-	BeerID    int64     `json:"beer_id"`
+	BeerID    int32     `json:"beer_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -60,13 +61,13 @@ type CreateBreweryParams struct {
 	Address     sql.NullString `json:"address"`
 	City        sql.NullString `json:"city"`
 	State       sql.NullString `json:"state"`
-	CountryID   string         `json:"country_id"`
+	CountryID   int32          `json:"country_id"`
 	Phone       sql.NullString `json:"phone"`
 	Url_2       sql.NullString `json:"url_2"`
 }
 
 type CreateBreweryRow struct {
-	BreweryID int64     `json:"brewery_id"`
+	BreweryID int32     `json:"brewery_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -96,7 +97,7 @@ INSERT INTO bdb_types (
 `
 
 type CreateTypeRow struct {
-	TypeID    int64     `json:"type_id"`
+	TypeID    int32     `json:"type_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -124,7 +125,7 @@ type CreateUserParams struct {
 }
 
 type CreateUserRow struct {
-	UserID       int64     `json:"user_id"`
+	UserID       int32     `json:"user_id"`
 	Username     string    `json:"username"`
 	Token        string    `json:"token"`
 	TokenExpires time.Time `json:"token_expires"`
@@ -148,12 +149,71 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	return i, err
 }
 
+const generateNewToken = `-- name: GenerateNewToken :one
+UPDATE bdb_users set
+	token = DEFAULT,
+	token_expires = DEFAULT
+WHERE
+	token = $1
+RETURNING token, token_expires
+`
+
+type GenerateNewTokenRow struct {
+	Token        string    `json:"token"`
+	TokenExpires time.Time `json:"token_expires"`
+}
+
+func (q *Queries) GenerateNewToken(ctx context.Context, token string) (GenerateNewTokenRow, error) {
+	row := q.queryRow(ctx, q.generateNewTokenStmt, generateNewToken, token)
+	var i GenerateNewTokenRow
+	err := row.Scan(&i.Token, &i.TokenExpires)
+	return i, err
+}
+
+const getAllBeers = `-- name: GetAllBeers :many
+SELECT beer_id, brewery_id, type_id, created_at, updated_at, name, description, abv, ibu FROM bdb_beers
+ORDER BY created_at DESC
+`
+
+func (q *Queries) GetAllBeers(ctx context.Context) ([]BdbBeer, error) {
+	rows, err := q.query(ctx, q.getAllBeersStmt, getAllBeers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []BdbBeer
+	for rows.Next() {
+		var i BdbBeer
+		if err := rows.Scan(
+			&i.BeerID,
+			&i.BreweryID,
+			&i.TypeID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Name,
+			&i.Description,
+			&i.Abv,
+			&i.Ibu,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBeersByBrewery = `-- name: GetBeersByBrewery :many
 SELECT beer_id, brewery_id, type_id, created_at, updated_at, name, description, abv, ibu FROM bdb_beers
 WHERE brewery_id = $1
 `
 
-func (q *Queries) GetBeersByBrewery(ctx context.Context, breweryID int64) ([]BdbBeer, error) {
+func (q *Queries) GetBeersByBrewery(ctx context.Context, breweryID int32) ([]BdbBeer, error) {
 	rows, err := q.query(ctx, q.getBeersByBreweryStmt, getBeersByBrewery, breweryID)
 	if err != nil {
 		return nil, err
@@ -267,14 +327,14 @@ WHERE similarity(description, $1) > 0.0
 `
 
 type SearchBeersRow struct {
-	BeerID         int64       `json:"beer_id"`
-	BreweryID      int64       `json:"brewery_id"`
-	Name           string      `json:"name"`
-	DescSimilarity interface{} `json:"desc_similarity"`
-	Headline       interface{} `json:"headline"`
+	BeerID         int32           `json:"beer_id"`
+	BreweryID      int32           `json:"brewery_id"`
+	Name           string          `json:"name"`
+	DescSimilarity float32         `json:"desc_similarity"`
+	Headline       json.RawMessage `json:"headline"`
 }
 
-func (q *Queries) SearchBeers(ctx context.Context, similarity interface{}) ([]SearchBeersRow, error) {
+func (q *Queries) SearchBeers(ctx context.Context, similarity string) ([]SearchBeersRow, error) {
 	rows, err := q.query(ctx, q.searchBeersStmt, searchBeers, similarity)
 	if err != nil {
 		return nil, err

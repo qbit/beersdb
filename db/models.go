@@ -8,9 +8,9 @@ import (
 )
 
 type BdbBeer struct {
-	BeerID      int64        `json:"beer_id"`
-	BreweryID   int64        `json:"brewery_id"`
-	TypeID      int64        `json:"type_id"`
+	BeerID      int32        `json:"beer_id"`
+	BreweryID   int32        `json:"brewery_id"`
+	TypeID      int32        `json:"type_id"`
 	CreatedAt   time.Time    `json:"created_at"`
 	UpdatedAt   sql.NullTime `json:"updated_at"`
 	Name        string       `json:"name"`
@@ -20,31 +20,31 @@ type BdbBeer struct {
 }
 
 type BdbBrewery struct {
-	BreweryID   int64          `json:"brewery_id"`
+	BreweryID   int32          `json:"brewery_id"`
 	CreatedAt   time.Time      `json:"created_at"`
 	Name        string         `json:"name"`
 	Description string         `json:"description"`
 	Address     sql.NullString `json:"address"`
 	City        sql.NullString `json:"city"`
 	State       sql.NullString `json:"state"`
-	CountryID   string         `json:"country_id"`
+	CountryID   int32          `json:"country_id"`
 	Phone       sql.NullString `json:"phone"`
 	Url         sql.NullString `json:"url"`
 }
 
 type BdbCountry struct {
-	ID    string `json:"id"`
+	ID    int32  `json:"id"`
 	Value string `json:"value"`
 }
 
 type BdbType struct {
-	TypeID    int64     `json:"type_id"`
+	TypeID    int32     `json:"type_id"`
 	CreatedAt time.Time `json:"created_at"`
 	Name      string    `json:"name"`
 }
 
 type BdbUser struct {
-	UserID       int64        `json:"user_id"`
+	UserID       int32        `json:"user_id"`
 	CreatedAt    time.Time    `json:"created_at"`
 	UpdatedAt    sql.NullTime `json:"updated_at"`
 	Active       bool         `json:"active"`

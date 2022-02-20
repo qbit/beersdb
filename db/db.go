@@ -34,6 +34,12 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.createUserStmt, err = db.PrepareContext(ctx, createUser); err != nil {
 		return nil, fmt.Errorf("error preparing query CreateUser: %w", err)
 	}
+	if q.generateNewTokenStmt, err = db.PrepareContext(ctx, generateNewToken); err != nil {
+		return nil, fmt.Errorf("error preparing query GenerateNewToken: %w", err)
+	}
+	if q.getAllBeersStmt, err = db.PrepareContext(ctx, getAllBeers); err != nil {
+		return nil, fmt.Errorf("error preparing query GetAllBeers: %w", err)
+	}
 	if q.getBeersByBreweryStmt, err = db.PrepareContext(ctx, getBeersByBrewery); err != nil {
 		return nil, fmt.Errorf("error preparing query GetBeersByBrewery: %w", err)
 	}
@@ -69,6 +75,16 @@ func (q *Queries) Close() error {
 	if q.createUserStmt != nil {
 		if cerr := q.createUserStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing createUserStmt: %w", cerr)
+		}
+	}
+	if q.generateNewTokenStmt != nil {
+		if cerr := q.generateNewTokenStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing generateNewTokenStmt: %w", cerr)
+		}
+	}
+	if q.getAllBeersStmt != nil {
+		if cerr := q.getAllBeersStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing getAllBeersStmt: %w", cerr)
 		}
 	}
 	if q.getBeersByBreweryStmt != nil {
@@ -134,6 +150,8 @@ type Queries struct {
 	createBreweryStmt     *sql.Stmt
 	createTypeStmt        *sql.Stmt
 	createUserStmt        *sql.Stmt
+	generateNewTokenStmt  *sql.Stmt
+	getAllBeersStmt       *sql.Stmt
 	getBeersByBreweryStmt *sql.Stmt
 	getRecentBeersStmt    *sql.Stmt
 	getUserByTokenStmt    *sql.Stmt
@@ -148,6 +166,8 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		createBreweryStmt:     q.createBreweryStmt,
 		createTypeStmt:        q.createTypeStmt,
 		createUserStmt:        q.createUserStmt,
+		generateNewTokenStmt:  q.generateNewTokenStmt,
+		getAllBeersStmt:       q.getAllBeersStmt,
 		getBeersByBreweryStmt: q.getBeersByBreweryStmt,
 		getRecentBeersStmt:    q.getRecentBeersStmt,
 		getUserByTokenStmt:    q.getUserByTokenStmt,
