@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -17,7 +18,8 @@ var (
 	pd, err     = sql.Open("postgres", "host=localhost dbname=qbit sslmode=disable password=''")
 	ctx, cancel = context.WithCancel(context.Background())
 	base        = db.New(pd)
-	ere         = regexp.MustCompile(`^\/api\/(.+)\/.+$`)
+	nounRe      = regexp.MustCompile(`^\/api\/(.+)\/.+$`)
+	verbRe      = regexp.MustCompile(`&\/api\/.+/(.+)$`)
 )
 
 type apiHandler struct {
@@ -35,7 +37,8 @@ func (a apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//}
 
 	token := r.Header.Get("X-Access-Token")
-	part := ere.ReplaceAllString(r.URL.Path, "$1")
+	noun := nounRe.ReplaceAllString(r.URL.Path, "$1")
+	verb := verbRe.ReplaceAllString(r.URL.Path, "$1")
 
 	if token == "" {
 		a.Error(w, http.StatusUnauthorized)
@@ -44,7 +47,7 @@ func (a apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	user, err := base.GetUserByToken(ctx, token)
 	if err != nil {
-		a.Error(w, http.StatusInternalServerError)
+		a.Error(w, http.StatusUnauthorized)
 		return
 	}
 
@@ -53,11 +56,42 @@ func (a apiHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	switch part {
+	switch noun {
 	case "beer":
+		switch verb {
+		case "all":
+			beers, err := base.GetAllBeers(ctx)
+			if err != nil {
+				a.Error(w, http.StatusInternalServerError)
+				log.Println(err)
+				return
+			}
+
+			json.NewEncoder(w).Encode(beers)
+		default:
+			beers, err := base.SearchBeers(ctx, noun)
+			if err != nil {
+				a.Error(w, http.StatusInternalServerError)
+				log.Println(err)
+				return
+			}
+			json.NewEncoder(w).Encode(beers)
+		}
 	case "brewery":
 	case "type":
 	case "user":
+		switch verb {
+		case "regenToken":
+			newToken, err := base.GenerateNewToken(ctx, token)
+			if err != nil {
+				a.Error(w, http.StatusInternalServerError)
+				log.Println(err)
+				return
+			}
+
+			json.NewEncoder(w).Encode(newToken)
+		}
+
 	default:
 		a.Error(w, http.StatusBadRequest)
 		return
@@ -82,5 +116,5 @@ func main() {
 		fmt.Fprintf(w, "BeersDB, a db for all your beer needs!")
 	})
 
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":8336", mux))
 }
