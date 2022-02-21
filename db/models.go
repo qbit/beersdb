@@ -38,9 +38,10 @@ type BdbCountry struct {
 }
 
 type BdbType struct {
-	TypeID    int32     `json:"type_id"`
-	CreatedAt time.Time `json:"created_at"`
-	Name      string    `json:"name"`
+	TypeID      int32          `json:"type_id"`
+	CreatedAt   time.Time      `json:"created_at"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
 }
 
 type BdbUser struct {

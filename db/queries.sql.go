@@ -90,19 +90,25 @@ func (q *Queries) CreateBrewery(ctx context.Context, arg CreateBreweryParams) (C
 
 const createType = `-- name: CreateType :one
 INSERT INTO bdb_types (
-	name
+	name,
+	description
 ) VALUES (
-	$1
+	$1, $2
 ) RETURNING type_id, created_at
 `
+
+type CreateTypeParams struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+}
 
 type CreateTypeRow struct {
 	TypeID    int32     `json:"type_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func (q *Queries) CreateType(ctx context.Context, name string) (CreateTypeRow, error) {
-	row := q.queryRow(ctx, q.createTypeStmt, createType, name)
+func (q *Queries) CreateType(ctx context.Context, arg CreateTypeParams) (CreateTypeRow, error) {
+	row := q.queryRow(ctx, q.createTypeStmt, createType, arg.Name, arg.Description)
 	var i CreateTypeRow
 	err := row.Scan(&i.TypeID, &i.CreatedAt)
 	return i, err
@@ -314,6 +320,28 @@ func (q *Queries) GetUserByToken(ctx context.Context, token string) (BdbUser, er
 		&i.Token,
 		&i.TokenExpires,
 	)
+	return i, err
+}
+
+const login = `-- name: Login :one
+SELECT token, token_expires FROM bdb_users
+WHERE username = $1 and crypt($2, hash) = hash
+`
+
+type LoginParams struct {
+	Username string `json:"username"`
+	Crypt    string `json:"crypt"`
+}
+
+type LoginRow struct {
+	Token        string    `json:"token"`
+	TokenExpires time.Time `json:"token_expires"`
+}
+
+func (q *Queries) Login(ctx context.Context, arg LoginParams) (LoginRow, error) {
+	row := q.queryRow(ctx, q.loginStmt, login, arg.Username, arg.Crypt)
+	var i LoginRow
+	err := row.Scan(&i.Token, &i.TokenExpires)
 	return i, err
 }
 

@@ -49,6 +49,9 @@ func Prepare(ctx context.Context, db DBTX) (*Queries, error) {
 	if q.getUserByTokenStmt, err = db.PrepareContext(ctx, getUserByToken); err != nil {
 		return nil, fmt.Errorf("error preparing query GetUserByToken: %w", err)
 	}
+	if q.loginStmt, err = db.PrepareContext(ctx, login); err != nil {
+		return nil, fmt.Errorf("error preparing query Login: %w", err)
+	}
 	if q.searchBeersStmt, err = db.PrepareContext(ctx, searchBeers); err != nil {
 		return nil, fmt.Errorf("error preparing query SearchBeers: %w", err)
 	}
@@ -100,6 +103,11 @@ func (q *Queries) Close() error {
 	if q.getUserByTokenStmt != nil {
 		if cerr := q.getUserByTokenStmt.Close(); cerr != nil {
 			err = fmt.Errorf("error closing getUserByTokenStmt: %w", cerr)
+		}
+	}
+	if q.loginStmt != nil {
+		if cerr := q.loginStmt.Close(); cerr != nil {
+			err = fmt.Errorf("error closing loginStmt: %w", cerr)
 		}
 	}
 	if q.searchBeersStmt != nil {
@@ -155,6 +163,7 @@ type Queries struct {
 	getBeersByBreweryStmt *sql.Stmt
 	getRecentBeersStmt    *sql.Stmt
 	getUserByTokenStmt    *sql.Stmt
+	loginStmt             *sql.Stmt
 	searchBeersStmt       *sql.Stmt
 }
 
@@ -171,6 +180,7 @@ func (q *Queries) WithTx(tx *sql.Tx) *Queries {
 		getBeersByBreweryStmt: q.getBeersByBreweryStmt,
 		getRecentBeersStmt:    q.getRecentBeersStmt,
 		getUserByTokenStmt:    q.getUserByTokenStmt,
+		loginStmt:             q.loginStmt,
 		searchBeersStmt:       q.searchBeersStmt,
 	}
 }
