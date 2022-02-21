@@ -35,6 +35,10 @@ WHERE
 	token = $1
 RETURNING token, token_expires;
 
+-- name: Login :one
+SELECT token, token_expires FROM bdb_users
+WHERE username = $1 and crypt($2, hash) = hash;
+
 -- name: GetUserByToken :one
 SELECT * FROM bdb_users
 WHERE token = $1 LIMIT 1;
