@@ -7,9 +7,10 @@ INSERT INTO bdb_breweries (
 
 -- name: CreateType :one
 INSERT INTO bdb_types (
-	name
+	name,
+	description
 ) VALUES (
-	$1
+	$1, $2
 ) RETURNING type_id, created_at;
 
 -- name: CreateBeer :one
