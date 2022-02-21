@@ -42,7 +42,8 @@ CREATE TABLE bdb_breweries (
 CREATE TABLE bdb_types (
 	type_id		INT GENERATED ALWAYS AS IDENTITY NOT NULL PRIMARY KEY UNIQUE,
 	created_at	timestamp 	NOT NULL DEFAULT NOW(),
-	name		text		NOT NULL
+	name		text		NOT NULL,
+	description	text
 );
 
 CREATE TABLE bdb_beers (
